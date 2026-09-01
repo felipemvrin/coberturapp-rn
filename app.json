@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "CoberturApp",
+    "slug": "coberturapp-rn",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "coberturapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "cl.coberturapp.app"
+    },
+    "android": {
+      "package": "cl.coberturapp.app",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-status-bar"]
+  }
+}
