@@ -8,13 +8,15 @@ import {
   AntennaListItem,
   Card,
   ConnectionStatusCard,
+  DirectionArrow,
   LocationNotice,
   PrimaryButton,
   SignalQualityIndicator,
   Text,
 } from '../components';
 import type { Antenna } from '../domain/entities';
-import { useCoverageDashboard } from '../hooks';
+import { relativeBearing } from '../domain/geo';
+import { useCoverageDashboard, useHeading } from '../hooks';
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 
@@ -33,6 +35,9 @@ export function DashboardScreen(): React.JSX.Element {
     refresh,
     findBestSignal,
   } = useCoverageDashboard();
+
+  // La brújula sólo se activa cuando hay una antena que señalar.
+  const { heading, available: hasCompass } = useHeading(bestSignal !== null);
 
   const renderItem = useCallback(
     ({ item }: { item: Antenna }) => (
@@ -116,15 +121,28 @@ export function DashboardScreen(): React.JSX.Element {
 
                 {bestSignal ? (
                   <Card testID="best-signal-card">
-                    <Text variant="labelSmall" color="onSurfaceVariant">
-                      MEJOR SEÑAL DISPONIBLE
-                    </Text>
-                    <Text variant="titleMedium" style={{ marginTop: theme.spacing.xs }}>
-                      {bestSignal.antenna.name}
-                    </Text>
-                    <Text color="onSurfaceVariant" style={{ marginTop: theme.spacing.xs }}>
-                      {bestSignal.hint}
-                    </Text>
+                    <View style={styles.bestSignalRow}>
+                      <View style={styles.bestSignalText}>
+                        <Text variant="labelSmall" color="onSurfaceVariant">
+                          MEJOR SEÑAL DISPONIBLE
+                        </Text>
+                        <Text variant="titleMedium" style={{ marginTop: theme.spacing.xs }}>
+                          {bestSignal.antenna.name}
+                        </Text>
+                        <Text color="onSurfaceVariant" style={{ marginTop: theme.spacing.xs }}>
+                          {bestSignal.hint}
+                        </Text>
+                      </View>
+
+                      <DirectionArrow
+                        live={hasCompass && heading !== null}
+                        rotationDegrees={relativeBearing(
+                          bestSignal.antenna.bearingDegrees,
+                          heading ?? 0,
+                        )}
+                        fallbackDirection={bestSignal.antenna.direction}
+                      />
+                    </View>
                   </Card>
                 ) : null}
 
@@ -143,4 +161,6 @@ export function DashboardScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  bestSignalRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  bestSignalText: { flex: 1 },
 });

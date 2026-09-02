@@ -173,23 +173,36 @@ repositorio de cobertura, por lo que los tests inyectan un doble y nunca tocan
 | `useUserLocation`        | Estado de permiso y posición              |
 | `LocationNotice`         | Aviso y reintento en la UI                |
 
+## Brújula
+
+Al pulsar **"Buscar mejor señal"**, la tarjeta de sugerencia muestra una flecha que
+apunta físicamente hacia la antena, combinando su rumbo geográfico con la
+orientación del dispositivo (`relativeBearing`).
+
+Se lee el **magnetómetro** directamente en vez de `Location.watchHeadingAsync`,
+porque este último exige permiso de ubicación y la brújula debe funcionar sin él.
+
+Si el dispositivo no tiene magnetómetro, la flecha se sustituye por el punto
+cardinal (N, NE, E…). La suscripción sólo está activa mientras hay una antena que
+señalar, para no consumir batería de forma innecesaria.
+
+| Pieza                   | Rol                                      |
+| ----------------------- | ---------------------------------------- |
+| `HeadingProvider`       | Contrato de dominio                      |
+| `ExpoHeadingDataSource` | Implementación real sobre `expo-sensors` |
+| `useHeading`            | Suscripción al rumbo del dispositivo     |
+| `DirectionArrow`        | Flecha rotada, con respaldo cardinal     |
+
 ## Pruebas
 
 ```bash
 npm test
 ```
 
-La primera ejecución tras reinstalar dependencias puede fallar por timeout: la
-transformación inicial de Babel supera los 5 s por defecto de Jest. Vuelve a
-ejecutarlo y pasará con la caché ya construida.
-
 ## Próximos pasos
-
-Los puntos de extensión ya están definidos (busca los comentarios `TODO` en el código):
 
 - **Datos reales de cobertura**: crear `ApiCoverageRepository` implementando
   `CoverageRepository` y registrarlo en [src/data/index.ts](src/data/index.ts).
-- **Orientación**: implementar `HeadingProvider` con `expo-sensors` para rotar la
-  flecha hacia la antena (ver [src/domain/repositories.ts](src/domain/repositories.ts)).
-- **Mejor flujo de búsqueda de señal**: enriquecer `findBestSignal` con datos reales y
-  centrar el mapa en la sugerencia.
+  Es el último `TODO` que queda en el código.
+- **Mejor flujo de búsqueda de señal**: centrar el mapa en la antena sugerida al
+  pulsar la tarjeta de resultado.

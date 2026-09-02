@@ -46,10 +46,9 @@ export interface LocationProvider {
   getCurrentPosition(): Promise<GeoPoint>;
 }
 
-/**
- * TODO (futuro): sensor de orientación (magnetómetro) para rotar la flecha
- * que apunta a la antena. Implementar con expo-sensors.
- */
+/** Orientación del dispositivo (magnetómetro), para apuntar hacia una antena. */
 export interface HeadingProvider {
-  getHeadingDegrees(): Promise<number>;
+  isAvailable(): Promise<boolean>;
+  /** Suscribe a los cambios de rumbo. Devuelve la función para darse de baja. */
+  watchHeading(onChange: (degrees: number) => void): () => void;
 }
