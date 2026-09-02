@@ -1,3 +1,5 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,10 +15,12 @@ import {
 } from '../components';
 import type { Antenna } from '../domain/entities';
 import { useCoverageDashboard } from '../hooks';
+import type { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 
 export function DashboardScreen(): React.JSX.Element {
   const theme = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const {
     snapshot,
     loading,
@@ -31,8 +35,13 @@ export function DashboardScreen(): React.JSX.Element {
   } = useCoverageDashboard();
 
   const renderItem = useCallback(
-    ({ item }: { item: Antenna }) => <AntennaListItem antenna={item} />,
-    [],
+    ({ item }: { item: Antenna }) => (
+      <AntennaListItem
+        antenna={item}
+        onPress={(antenna) => navigation.navigate('Map', { focusAntennaId: antenna.id })}
+      />
+    ),
+    [navigation],
   );
 
   if (loading) {
@@ -97,6 +106,12 @@ export function DashboardScreen(): React.JSX.Element {
                   label={searchingBestSignal ? 'Buscando…' : 'Buscar mejor señal'}
                   loading={searchingBestSignal}
                   onPress={findBestSignal}
+                />
+
+                <PrimaryButton
+                  testID="open-map-button"
+                  label="Ver mapa de cobertura"
+                  onPress={() => navigation.navigate('Map')}
                 />
 
                 {bestSignal ? (

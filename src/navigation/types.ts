@@ -1,7 +1,8 @@
 /** Rutas tipadas: `navigation.navigate('Map')` queda validado por TypeScript. */
 export type RootStackParamList = {
   Dashboard: undefined;
-  Map: undefined;
+  /** `focusAntennaId` centra el mapa en una antena concreta al abrirlo. */
+  Map: { focusAntennaId?: string } | undefined;
 };
 
 declare global {

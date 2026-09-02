@@ -32,7 +32,6 @@ export function RootNavigator(): React.JSX.Element {
           component={DashboardScreen}
           options={{ headerShown: false }}
         />
-        {/* TODO: enlazar desde el dashboard cuando el mapa esté implementado. */}
         <Stack.Screen name="Map" component={MapScreen} options={{ title: 'Mapa' }} />
       </Stack.Navigator>
     </NavigationContainer>
