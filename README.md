@@ -13,6 +13,9 @@ enchufar datos reales sin tocar la UI.
 - npm 10 o superior
 - App **Expo Go** en tu teléfono, o un simulador de iOS / emulador de Android
 
+> **Importante:** este proyecto está fijado a **Expo SDK 54**. Ver
+> [Compatibilidad con Expo Go](#compatibilidad-con-expo-go) antes de actualizar.
+
 ## Cómo ejecutar
 
 ```bash
@@ -22,6 +25,34 @@ npx expo start
 
 Luego escanea el código QR con Expo Go, o pulsa `i` (iOS), `a` (Android) o `w` (web)
 en la terminal.
+
+## Compatibilidad con Expo Go
+
+Expo Go sólo puede ejecutar proyectos del SDK cuyo runtime trae embebido. Si el
+proyecto usa un SDK más nuevo que el de la app instalada, al escanear el QR aparece:
+
+> Project is incompatible with this version of Expo Go.
+
+Por eso el proyecto está fijado al **SDK 54** y no al más reciente. **No actualices
+el SDK** sin verificar antes qué versión soporta tu Expo Go.
+
+Para comprobar qué SDK anuncia el servidor de desarrollo:
+
+```bash
+curl -s -H "Expo-Platform: ios" -H "Accept: application/expo+json,application/json" \
+  http://127.0.0.1:8081 | node -pe "JSON.parse(require('fs').readFileSync(0)).extra.expoClient.sdkVersion"
+```
+
+Y qué versión de Expo Go exige cada SDK:
+
+```bash
+curl -s https://api.expo.dev/v2/versions/latest | node -pe \
+  "Object.entries(JSON.parse(require('fs').readFileSync(0)).data.sdkVersions).map(([k,v])=>k+' -> '+v.iosClientVersion).join('\n')"
+```
+
+Si necesitas un SDK más nuevo que el que soporta Expo Go, la alternativa es un
+**development build** (`npx expo run:ios`), que instala la app con su propio
+runtime y elimina esta dependencia de la App Store.
 
 ## Scripts
 
@@ -82,6 +113,16 @@ screens ──> hooks ──> CoverageRepository (interfaz de dominio)
 - Lista de antenas cercanas con `FlatList` (nombre, operador, distancia y dirección)
 - Acción **"Buscar mejor señal"** con estado de carga simulado
 - Pull to refresh
+
+## Pruebas
+
+```bash
+npm test
+```
+
+La primera ejecución tras reinstalar dependencias puede fallar por timeout: la
+transformación inicial de Babel supera los 5 s por defecto de Jest. Vuelve a
+ejecutarlo y pasará con la caché ya construida.
 
 ## Próximos pasos
 
