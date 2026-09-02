@@ -8,7 +8,6 @@ import { Text } from './Text';
 
 export interface AntennaListItemProps {
   antenna: Antenna;
-  /** TODO: al integrar el mapa, centrar la antena seleccionada. */
   onPress?: (antenna: Antenna) => void;
 }
 

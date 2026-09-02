@@ -28,3 +28,11 @@ export function bearingBetween(from: GeoPoint, to: GeoPoint): number {
 
   return (toDegrees(Math.atan2(y, x)) + 360) % 360;
 }
+
+/**
+ * Ángulo al que rotar una flecha para que apunte al objetivo desde la
+ * orientación actual del dispositivo. 0 = al frente.
+ */
+export function relativeBearing(targetBearing: number, deviceHeading: number): number {
+  return (((targetBearing - deviceHeading) % 360) + 360) % 360;
+}
