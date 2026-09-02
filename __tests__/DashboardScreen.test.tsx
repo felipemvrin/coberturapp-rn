@@ -1,3 +1,4 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import { MockCoverageRepository } from '../src/data';
@@ -34,7 +35,9 @@ async function renderDashboard(
     <ThemeProvider forceScheme="light">
       <CoverageRepositoryProvider repository={repository}>
         <AppLocationProvider provider={location}>
-          <DashboardScreen />
+          <NavigationContainer>
+            <DashboardScreen />
+          </NavigationContainer>
         </AppLocationProvider>
       </CoverageRepositoryProvider>
     </ThemeProvider>,

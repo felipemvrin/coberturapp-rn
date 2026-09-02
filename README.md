@@ -112,7 +112,47 @@ screens ──> hooks ──> CoverageRepository (interfaz de dominio)
 - Indicador visual de calidad de señal (4 barras + dBm)
 - Lista de antenas cercanas con `FlatList` (nombre, operador, distancia y dirección)
 - Acción **"Buscar mejor señal"** con estado de carga simulado
+- Acción **"Ver mapa de cobertura"**; tocar una antena abre el mapa centrado en ella
 - Pull to refresh
+
+## Mapa
+
+Usa `react-native-maps` con **Google Maps en Android e iOS** (`PROVIDER_GOOGLE`).
+Muestra un marcador por antena, coloreado según la tecnología, y la posición del
+usuario cuando hay permiso concedido.
+
+`react-native-maps` viene incluido en Expo Go, por lo que **no requiere ninguna
+configuración para desarrollo**.
+
+### API keys (sólo al compilar el binario)
+
+Al generar un development build o publicar en las tiendas, Google Maps sí exige
+credenciales:
+
+1. En [Google Cloud](https://console.cloud.google.com/apis), habilita **Maps SDK for
+   Android** y **Maps SDK for iOS**.
+2. Crea una API key por plataforma, restringida al `android.package` y al
+   `ios.bundleIdentifier` declarados en [app.json](app.json).
+3. Añade el plugin a `app.json`:
+
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "TU_API_KEY_ANDROID",
+          "iosGoogleMapsApiKey": "TU_API_KEY_IOS"
+        }
+      ]
+    ]
+  }
+}
+```
+
+El plugin **no está declarado todavía** de forma deliberada: un config plugin
+innecesario ya rompió el arranque del proyecto en el pasado.
 
 ## Geolocalización
 
@@ -149,9 +189,7 @@ Los puntos de extensión ya están definidos (busca los comentarios `TODO` en el
 
 - **Datos reales de cobertura**: crear `ApiCoverageRepository` implementando
   `CoverageRepository` y registrarlo en [src/data/index.ts](src/data/index.ts).
-- **Mapa interactivo**: `react-native-maps` en [src/screens/MapScreen.tsx](src/screens/MapScreen.tsx),
-  usando `Antenna.position` y el origen ya disponible en `useUserLocation`.
 - **Orientación**: implementar `HeadingProvider` con `expo-sensors` para rotar la
   flecha hacia la antena (ver [src/domain/repositories.ts](src/domain/repositories.ts)).
 - **Mejor flujo de búsqueda de señal**: enriquecer `findBestSignal` con datos reales y
-  navegación al mapa.
+  centrar el mapa en la sugerencia.
