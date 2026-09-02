@@ -56,7 +56,7 @@ export function MapScreen(): React.JSX.Element {
         style={styles.flex}
         showsUserLocation={locationStatus === 'ready'}
         showsMyLocationButton={locationStatus === 'ready'}
-        region={{
+        initialRegion={{
           latitude: center.latitude,
           longitude: center.longitude,
           latitudeDelta: DELTA,

@@ -39,6 +39,14 @@ async function renderMap(params: { focusAntennaId?: string } | undefined = undef
 }
 
 describe('MapScreen', () => {
+  it('centra inicialmente el mapa en la ubicación del usuario', async () => {
+    await renderMap();
+
+    const map = await screen.findByTestId('coverage-map');
+    expect(map.props.initialRegion.latitude).toBe(POSITION.latitude);
+    expect(map.props.initialRegion.longitude).toBe(POSITION.longitude);
+  });
+
   it('renderiza un marcador por cada antena cercana', async () => {
     await renderMap();
 
@@ -57,6 +65,11 @@ describe('MapScreen', () => {
   it('acepta el parámetro de antena enfocada', async () => {
     await renderMap({ focusAntennaId: 'ant-003' });
 
-    expect(await screen.findByTestId('antenna-marker-ant-003')).toBeTruthy();
+    const map = await screen.findByTestId('coverage-map');
+    const marker = screen.getByTestId('antenna-marker-ant-003');
+
+    expect(marker).toBeTruthy();
+    expect(map.props.initialRegion.latitude).toBe(marker.props.coordinate.latitude);
+    expect(map.props.initialRegion.longitude).toBe(marker.props.coordinate.longitude);
   });
 });
