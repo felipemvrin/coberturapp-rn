@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useHeadingProvider } from './useHeadingProvider';
 
@@ -14,12 +14,20 @@ export function useHeading(enabled = true): HeadingState {
 
   const [heading, setHeading] = useState<number | null>(null);
   const [available, setAvailable] = useState(false);
+  const headingRef = useRef(heading);
+  const availableRef = useRef(available);
+  headingRef.current = heading;
+  availableRef.current = available;
 
   useEffect(() => {
     if (!enabled) {
-      setHeading(null);
+      if (availableRef.current) setAvailable(false);
+      if (headingRef.current !== null) setHeading(null);
       return;
     }
+
+    if (availableRef.current) setAvailable(false);
+    if (headingRef.current !== null) setHeading(null);
 
     let active = true;
     let unsubscribe: (() => void) | undefined;

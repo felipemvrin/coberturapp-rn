@@ -89,6 +89,28 @@ describe('useHeading', () => {
     const provider = new FakeHeadingProvider();
     const { result } = await renderHeading(provider, false);
 
+    expect(result.current.available).toBe(false);
+    expect(result.current.heading).toBeNull();
+  });
+
+  it('resetea estado al deshabilitarlo', async () => {
+    const provider = new FakeHeadingProvider();
+    const { result, rerender } = await renderHook(
+      ({ enabled }: { enabled: boolean }) => useHeading(enabled),
+      {
+        initialProps: { enabled: true },
+        wrapper: ({ children }) => (
+          <AppHeadingProvider provider={provider}>{children}</AppHeadingProvider>
+        ),
+      },
+    );
+
+    await waitFor(() => expect(result.current.available).toBe(true));
+    await act(async () => provider.emit(270));
+    expect(result.current.heading).toBe(270);
+
+    await act(async () => rerender({ enabled: false }));
+    await waitFor(() => expect(result.current.available).toBe(false));
     expect(result.current.heading).toBeNull();
   });
 
