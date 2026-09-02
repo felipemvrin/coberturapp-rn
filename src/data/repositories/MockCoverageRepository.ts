@@ -56,6 +56,9 @@ export class MockCoverageRepository implements CoverageRepository {
     await this.delay(this.latencyMs * 2);
 
     const candidates = this.filterAntennas({ ...params, limit: undefined });
+    if (candidates.length === 0) {
+      throw new Error('No hay antenas disponibles para sugerir una mejor señal.');
+    }
     const best = candidates.reduce((acc, antenna) =>
       scoreAntenna(antenna) > scoreAntenna(acc) ? antenna : acc,
     );

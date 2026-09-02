@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BestSignalSuggestion, CoverageSnapshot } from '../domain/entities';
 import { useCoverageRepository } from './useCoverageRepository';
@@ -20,6 +20,7 @@ export interface CoverageDashboardState {
  */
 export function useCoverageDashboard(): CoverageDashboardState {
   const repository = useCoverageRepository();
+  const isMountedRef = useRef(true);
 
   const [snapshot, setSnapshot] = useState<CoverageSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,16 +31,21 @@ export function useCoverageDashboard(): CoverageDashboardState {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh') => {
+      if (!isMountedRef.current) return;
       if (mode === 'initial') setLoading(true);
       else setRefreshing(true);
       setError(null);
 
       try {
         // TODO: pasar `origin` desde el LocationProvider (expo-location).
-        setSnapshot(await repository.getCoverageSnapshot());
+        const nextSnapshot = await repository.getCoverageSnapshot();
+        if (!isMountedRef.current) return;
+        setSnapshot(nextSnapshot);
       } catch {
+        if (!isMountedRef.current) return;
         setError('No pudimos obtener el estado de cobertura. Inténtalo nuevamente.');
       } finally {
+        if (!isMountedRef.current) return;
         setLoading(false);
         setRefreshing(false);
       }
@@ -48,12 +54,12 @@ export function useCoverageDashboard(): CoverageDashboardState {
   );
 
   useEffect(() => {
-    let active = true;
-    void (async () => {
-      if (active) await load('initial');
-    })();
+    isMountedRef.current = true;
+    queueMicrotask(() => {
+      void load('initial');
+    });
     return () => {
-      active = false;
+      isMountedRef.current = false;
     };
   }, [load]);
 
@@ -63,10 +69,14 @@ export function useCoverageDashboard(): CoverageDashboardState {
     setSearchingBestSignal(true);
     setError(null);
     try {
-      setBestSignal(await repository.findBestSignal());
+      const suggestion = await repository.findBestSignal();
+      if (!isMountedRef.current) return;
+      setBestSignal(suggestion);
     } catch {
+      if (!isMountedRef.current) return;
       setError('No pudimos completar la búsqueda de mejor señal.');
     } finally {
+      if (!isMountedRef.current) return;
       setSearchingBestSignal(false);
     }
   }, [repository]);

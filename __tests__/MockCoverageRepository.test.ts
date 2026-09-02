@@ -37,6 +37,12 @@ describe('MockCoverageRepository', () => {
     expect(suggestion.hint).toContain('Providencia Norte');
   });
 
+  it('falla con un error claro si no hay antenas candidatas', async () => {
+    await expect(repository.findBestSignal({ radiusMeters: 100 })).rejects.toThrow(
+      'No hay antenas disponibles para sugerir una mejor señal.',
+    );
+  });
+
   it('entrega un snapshot completo para el dashboard', async () => {
     const snapshot = await repository.getCoverageSnapshot();
     expect(snapshot.connection).toBeDefined();
