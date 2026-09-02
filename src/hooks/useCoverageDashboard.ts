@@ -68,12 +68,14 @@ export function useCoverageDashboard(): CoverageDashboardState {
   const findBestSignal = useCallback(async () => {
     setSearchingBestSignal(true);
     setError(null);
+    setBestSignal(null);
     try {
       const suggestion = await repository.findBestSignal();
       if (!isMountedRef.current) return;
       setBestSignal(suggestion);
     } catch {
       if (!isMountedRef.current) return;
+      setBestSignal(null);
       setError('No pudimos completar la búsqueda de mejor señal.');
     } finally {
       if (!isMountedRef.current) return;
