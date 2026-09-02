@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { BestSignalSuggestion, CoverageSnapshot } from '../domain/entities';
 import { useCoverageRepository } from './useCoverageRepository';
+import { useUserLocation, type UserLocationStatus } from './useUserLocation';
 
 export interface CoverageDashboardState {
   snapshot: CoverageSnapshot | null;
@@ -10,6 +11,8 @@ export interface CoverageDashboardState {
   searchingBestSignal: boolean;
   bestSignal: BestSignalSuggestion | null;
   error: string | null;
+  locationStatus: UserLocationStatus;
+  retryLocation: () => Promise<void>;
   refresh: () => Promise<void>;
   findBestSignal: () => Promise<void>;
 }
@@ -20,6 +23,7 @@ export interface CoverageDashboardState {
  */
 export function useCoverageDashboard(): CoverageDashboardState {
   const repository = useCoverageRepository();
+  const { origin, status: locationStatus, retry: retryLocation } = useUserLocation();
   const isMountedRef = useRef(true);
 
   const [snapshot, setSnapshot] = useState<CoverageSnapshot | null>(null);
@@ -37,8 +41,7 @@ export function useCoverageDashboard(): CoverageDashboardState {
       setError(null);
 
       try {
-        // TODO: pasar `origin` desde el LocationProvider (expo-location).
-        const nextSnapshot = await repository.getCoverageSnapshot();
+        const nextSnapshot = await repository.getCoverageSnapshot(origin ? { origin } : {});
         if (!isMountedRef.current) return;
         setSnapshot(nextSnapshot);
       } catch {
@@ -50,7 +53,7 @@ export function useCoverageDashboard(): CoverageDashboardState {
         setRefreshing(false);
       }
     },
-    [repository],
+    [repository, origin],
   );
 
   useEffect(() => {
@@ -70,7 +73,7 @@ export function useCoverageDashboard(): CoverageDashboardState {
     setError(null);
     setBestSignal(null);
     try {
-      const suggestion = await repository.findBestSignal();
+      const suggestion = await repository.findBestSignal(origin ? { origin } : {});
       if (!isMountedRef.current) return;
       setBestSignal(suggestion);
     } catch {
@@ -81,7 +84,7 @@ export function useCoverageDashboard(): CoverageDashboardState {
       if (!isMountedRef.current) return;
       setSearchingBestSignal(false);
     }
-  }, [repository]);
+  }, [repository, origin]);
 
   return {
     snapshot,
@@ -90,6 +93,8 @@ export function useCoverageDashboard(): CoverageDashboardState {
     searchingBestSignal,
     bestSignal,
     error,
+    locationStatus,
+    retryLocation,
     refresh,
     findBestSignal,
   };

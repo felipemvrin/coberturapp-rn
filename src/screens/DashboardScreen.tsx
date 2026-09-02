@@ -6,6 +6,7 @@ import {
   AntennaListItem,
   Card,
   ConnectionStatusCard,
+  LocationNotice,
   PrimaryButton,
   SignalQualityIndicator,
   Text,
@@ -23,6 +24,8 @@ export function DashboardScreen(): React.JSX.Element {
     searchingBestSignal,
     bestSignal,
     error,
+    locationStatus,
+    retryLocation,
     refresh,
     findBestSignal,
   } = useCoverageDashboard();
@@ -74,6 +77,8 @@ export function DashboardScreen(): React.JSX.Element {
             <Text variant="titleLarge" color="onBackground">
               CoberturApp
             </Text>
+
+            <LocationNotice status={locationStatus} onRetry={retryLocation} />
 
             {error ? (
               <Text color="error" testID="dashboard-error">

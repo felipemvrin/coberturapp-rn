@@ -18,6 +18,14 @@
     "web": {
       "bundler": "metro",
       "output": "single"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "CoberturApp usa tu ubicación para calcular la distancia y dirección hacia las antenas cercanas."
+        }
+      ]
+    ]
   }
 }

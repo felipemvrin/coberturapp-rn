@@ -3,10 +3,17 @@ import type {
   BestSignalSuggestion,
   ConnectionStatus,
   CoverageSnapshot,
+  GeoPoint,
   SignalMeasurement,
 } from '../../domain/entities';
 import type { CoverageRepository, NearbyAntennasQuery } from '../../domain/repositories';
-import { barsFromDbm, formatDistance, levelFromBars } from '../../domain/signal';
+import { bearingBetween, distanceBetween } from '../../domain/geo';
+import {
+  barsFromDbm,
+  directionFromBearing,
+  formatDistance,
+  levelFromBars,
+} from '../../domain/signal';
 import { MOCK_ANTENNAS, MOCK_CONNECTION, MOCK_DBM_SERIES } from '../datasources/mockCoverageData';
 
 export interface MockCoverageRepositoryOptions {
@@ -71,10 +78,10 @@ export class MockCoverageRepository implements CoverageRepository {
   }
 
   private filterAntennas(params: NearbyAntennasQuery): Antenna[] {
-    const { radiusMeters = Number.POSITIVE_INFINITY, limit } = params;
-    const result = MOCK_ANTENNAS.filter((a) => a.distanceMeters <= radiusMeters).sort(
-      (a, b) => a.distanceMeters - b.distanceMeters,
-    );
+    const { origin, radiusMeters = Number.POSITIVE_INFINITY, limit } = params;
+    const result = MOCK_ANTENNAS.map((antenna) => (origin ? relocate(antenna, origin) : antenna))
+      .filter((a) => a.distanceMeters <= radiusMeters)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
     return typeof limit === 'number' ? result.slice(0, limit) : result;
   }
 
@@ -95,4 +102,15 @@ export class MockCoverageRepository implements CoverageRepository {
 function scoreAntenna(antenna: Antenna): number {
   const techBonus = antenna.technology === '5G' ? 1500 : antenna.technology === '4G+' ? 800 : 0;
   return techBonus - antenna.distanceMeters;
+}
+
+/** Recalcula distancia y rumbo de una antena respecto a la posición real del usuario. */
+function relocate(antenna: Antenna, origin: GeoPoint): Antenna {
+  const bearingDegrees = bearingBetween(origin, antenna.position);
+  return {
+    ...antenna,
+    distanceMeters: distanceBetween(origin, antenna.position),
+    bearingDegrees,
+    direction: directionFromBearing(bearingDegrees),
+  };
 }
