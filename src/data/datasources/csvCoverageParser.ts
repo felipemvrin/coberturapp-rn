@@ -8,39 +8,81 @@ import { directionFromBearing } from '../../domain/signal';
  * Formato decimal: -33.43456
  */
 function dmsToDecimal(coordStr: string): number {
-  const cleaned = coordStr.trim();
-  
-  // Si ya es decimal (tiene punto), devolverlo directamente
-  if (cleaned.includes('.') && !cleaned.includes('°')) {
-    return parseFloat(cleaned);
+  const cleaned = coordStr.trim().replace(/^"|"$/g, '');
+  if (!cleaned) return Number.NaN;
+
+  const decimalValue = Number(cleaned.replace(',', '.'));
+  if (Number.isFinite(decimalValue) && !cleaned.includes('°')) {
+    return decimalValue;
   }
-  
-  // Si es DMS, parsear
-  let result = parseFloat(cleaned);
-  
-  // Remover comillas de inicio/fin si existen
-  let working = cleaned;
-  if (working.startsWith('"')) working = working.slice(1);
-  if (working.endsWith('"')) working = working.slice(0, -1);
-  
-  // Dividir por grados
-  const parts = working.split('°');
-  if (parts.length < 2) return result;
-  
-  const degrees = parseFloat(parts[0]);
-  
-  // El resto contiene minutos y segundos
-  const rest = parts[1].trim();
-  
-  // Dividir por " (comilla doble) o ' (comilla simple)
-  const restNormalized = rest.replace(/"/g, '.');
-  const timeParts = restNormalized.split('.');
-  
-  const minutes = parseFloat(timeParts[0]) || 0;
-  const seconds = parseFloat(timeParts[1]) || 0;
-  
-  result = Math.round((degrees + minutes / 60 + seconds / 3600) * 1000000) / 1000000;
-  return result;
+
+  const normalized = cleaned
+    .replace(/,/g, '.')
+    .replace(/º/g, '°')
+    .replace(/[′’]/g, "'")
+    .replace(/[″]/g, '"')
+    .toUpperCase();
+  const hemisphere = normalized.match(/[NSEW]/)?.[0];
+  const dmsOnly = normalized.replace(/[NSEW]/g, '').trim();
+  const match = dmsOnly.match(
+    /^(-?\d+(?:\.\d+)?)\s*°\s*(\d+(?:\.\d+)?)?\s*'?\s*(\d+(?:\.\d+)?)?\s*"?$/,
+  );
+  if (!match) return Number.NaN;
+
+  const degrees = Number(match[1]);
+  const minutes = Number(match[2] ?? 0);
+  const seconds = Number(match[3] ?? 0);
+  if (!Number.isFinite(degrees) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+    return Number.NaN;
+  }
+
+  const absolute = Math.abs(degrees) + minutes / 60 + seconds / 3600;
+  if (!Number.isFinite(absolute)) return Number.NaN;
+
+  if (hemisphere === 'S' || hemisphere === 'W') {
+    return -Number(absolute.toFixed(6));
+  }
+  if (hemisphere === 'N' || hemisphere === 'E') {
+    return Number(absolute.toFixed(6));
+  }
+  return Number((Math.sign(degrees) < 0 ? -absolute : absolute).toFixed(6));
+}
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes) {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else if (!current.length) {
+        inQuotes = true;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      fields.push(current);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  fields.push(current);
+  return fields;
 }
 
 /**
@@ -70,33 +112,25 @@ interface CsvRow {
  * Maneja coordenadas en formato decimal o DMS.
  */
 export function parseAntennaRow(line: string): CsvRow | null {
-  const fields = line.split(',').map(f => f.trim());
+  const fields = parseCsvLine(line).map((f) => f.trim());
   
   if (fields.length < 8) return null;
-  
-  try {
-    const latStr = fields[6];
-    const lonStr = fields[7];
-    
-    let lat = dmsToDecimal(latStr);
-    let lon = dmsToDecimal(lonStr);
-    
-    // Si no son negativos (formato DMS antiguo), hacerlos negativos
-    if (lat > 0) lat = -lat;
-    if (lon > 0) lon = -lon;
-    
-    return {
-      nro: fields[0],
-      empresa: fields[3],
-      comuna: fields[4],
-      direccion: fields[5],
-      latitud: lat,
-      longitud: lon,
-    };
-  } catch (e) {
-    console.warn('Error parsing antenna row:', line, e);
+
+  const lat = dmsToDecimal(fields[6]);
+  const lon = dmsToDecimal(fields[7]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) {
     return null;
   }
+
+  return {
+    nro: fields[0],
+    empresa: fields[3],
+    comuna: fields[4],
+    direccion: fields[5],
+    latitud: lat,
+    longitud: lon,
+  };
 }
 
 /**
@@ -128,7 +162,7 @@ export function rowToAntenna(row: CsvRow, index: number, origin: GeoPoint): Ante
  * Parsea un CSV completo y devuelve un array de Antenna.
  */
 export function parseAntennasCsv(csvContent: string, origin: GeoPoint): Antenna[] {
-  const lines = csvContent.split('\n').filter(line => line.trim());
+  const lines = csvContent.split(/\r?\n/).filter((line) => line.trim());
   
   if (lines.length < 2) return []; // Al menos header + 1 fila
 

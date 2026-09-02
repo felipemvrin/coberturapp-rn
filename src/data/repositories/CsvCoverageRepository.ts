@@ -3,11 +3,13 @@ import type {
   BestSignalSuggestion,
   ConnectionStatus,
   CoverageSnapshot,
+  GeoPoint,
   SignalMeasurement,
 } from '../../domain/entities';
 import type { CoverageRepository, NearbyAntennasQuery } from '../../domain/repositories';
 import { parseAntennasCsv } from '../datasources/csvCoverageParser';
-import { barsFromDbm, levelFromBars, formatDistance } from '../../domain/signal';
+import { bearingBetween, distanceBetween } from '../../domain/geo';
+import { barsFromDbm, directionFromBearing, levelFromBars, formatDistance } from '../../domain/signal';
 import { MOCK_CONNECTION } from '../datasources/mockCoverageData';
 
 
@@ -85,23 +87,12 @@ export class CsvCoverageRepository implements CoverageRepository {
   }
 
   private filterAntennas(params: NearbyAntennasQuery): Antenna[] {
-    let filtered = [...this.antennas];
-
-    if (params.radiusMeters !== undefined && params.radiusMeters !== null) {
-      filtered = filtered.filter(a => a.distanceMeters <= params.radiusMeters!);
-    }
-
-    // Ordenar por distancia
-    filtered.sort((a, b) => a.distanceMeters - b.distanceMeters);
-
-    // Limitar
-    if (params.limit !== undefined) {
-      filtered = filtered.slice(0, params.limit);
-    } else {
-      filtered = filtered.slice(0, 20); // Default a 20 (todos del CSV de prueba)
-    }
-
-    return filtered;
+    const { origin, radiusMeters = Number.POSITIVE_INFINITY, limit } = params;
+    const result = this.antennas
+      .map((antenna) => (origin ? relocate(antenna, origin) : antenna))
+      .filter((a) => a.distanceMeters <= radiusMeters)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+    return typeof limit === 'number' ? result.slice(0, limit) : result;
   }
 
   private nextMeasurement(): SignalMeasurement {
@@ -141,4 +132,14 @@ function scoreAntenna(antenna: Antenna): number {
   
   score += techScore[antenna.technology] || 0;
   return score;
+}
+
+function relocate(antenna: Antenna, origin: GeoPoint): Antenna {
+  const bearingDegrees = bearingBetween(origin, antenna.position);
+  return {
+    ...antenna,
+    distanceMeters: distanceBetween(origin, antenna.position),
+    bearingDegrees,
+    direction: directionFromBearing(bearingDegrees),
+  };
 }
