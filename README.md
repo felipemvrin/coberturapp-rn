@@ -114,6 +114,25 @@ screens ──> hooks ──> CoverageRepository (interfaz de dominio)
 - Acción **"Buscar mejor señal"** con estado de carga simulado
 - Pull to refresh
 
+## Geolocalización
+
+La app pide permiso de ubicación **en primer plano** al abrirse y, con la posición
+real, recalcula la distancia y el rumbo hacia cada antena (Haversine).
+
+El permiso **no es bloqueante**: si se deniega o el GPS falla, el dashboard sigue
+funcionando con un origen por defecto y muestra un aviso con opción de reintentar.
+
+La fuente de ubicación está detrás de la interfaz `LocationProvider`, igual que el
+repositorio de cobertura, por lo que los tests inyectan un doble y nunca tocan
+`expo-location`.
+
+| Pieza                    | Rol                                       |
+| ------------------------ | ----------------------------------------- |
+| `LocationProvider`       | Contrato de dominio                       |
+| `ExpoLocationDataSource` | Implementación real sobre `expo-location` |
+| `useUserLocation`        | Estado de permiso y posición              |
+| `LocationNotice`         | Aviso y reintento en la UI                |
+
 ## Pruebas
 
 ```bash
@@ -131,8 +150,8 @@ Los puntos de extensión ya están definidos (busca los comentarios `TODO` en el
 - **Datos reales de cobertura**: crear `ApiCoverageRepository` implementando
   `CoverageRepository` y registrarlo en [src/data/index.ts](src/data/index.ts).
 - **Mapa interactivo**: `react-native-maps` en [src/screens/MapScreen.tsx](src/screens/MapScreen.tsx),
-  usando `Antenna.position`.
-- **GPS y orientación**: implementar `LocationProvider` con `expo-location` y
-  `HeadingProvider` con `expo-sensors` (ver [src/domain/repositories.ts](src/domain/repositories.ts)).
+  usando `Antenna.position` y el origen ya disponible en `useUserLocation`.
+- **Orientación**: implementar `HeadingProvider` con `expo-sensors` para rotar la
+  flecha hacia la antena (ver [src/domain/repositories.ts](src/domain/repositories.ts)).
 - **Mejor flujo de búsqueda de señal**: enriquecer `findBestSignal` con datos reales y
   navegación al mapa.

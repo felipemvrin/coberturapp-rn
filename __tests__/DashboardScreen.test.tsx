@@ -1,17 +1,41 @@
 import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import { MockCoverageRepository } from '../src/data';
-import type { CoverageRepository } from '../src/domain/repositories';
-import { CoverageRepositoryProvider } from '../src/hooks';
+import type { GeoPoint } from '../src/domain/entities';
+import {
+  LocationError,
+  type CoverageRepository,
+  type LocationProvider,
+} from '../src/domain/repositories';
+import { AppLocationProvider, CoverageRepositoryProvider } from '../src/hooks';
 import { DashboardScreen } from '../src/screens';
 import { ThemeProvider } from '../src/theme';
 
+const POSITION: GeoPoint = { latitude: -33.4489, longitude: -70.6693 };
+
+const grantedLocation: LocationProvider = {
+  requestPermission: async () => 'granted',
+  getCurrentPosition: async () => POSITION,
+};
+
+const deniedLocation: LocationProvider = {
+  requestPermission: async () => 'denied',
+  getCurrentPosition: async () => {
+    throw new LocationError('permission-denied');
+  },
+};
+
 // En RNTL v14 `render` es asíncrono y publica el resultado en `screen`.
-async function renderDashboard(repository: CoverageRepository = new MockCoverageRepository({ latencyMs: 0 })) {
+async function renderDashboard(
+  repository: CoverageRepository = new MockCoverageRepository({ latencyMs: 0 }),
+  location: LocationProvider = grantedLocation,
+) {
   await render(
     <ThemeProvider forceScheme="light">
       <CoverageRepositoryProvider repository={repository}>
-        <DashboardScreen />
+        <AppLocationProvider provider={location}>
+          <DashboardScreen />
+        </AppLocationProvider>
       </CoverageRepositoryProvider>
     </ThemeProvider>,
   );
@@ -32,7 +56,22 @@ describe('DashboardScreen', () => {
 
     expect(await screen.findByText('Providencia Norte')).toBeTruthy();
     expect(screen.getByText('Bellas Artes')).toBeTruthy();
-    expect(screen.getByText('320 m')).toBeTruthy();
+  });
+
+  it('no muestra aviso de ubicación cuando hay permiso', async () => {
+    await renderDashboard();
+
+    expect(await screen.findByTestId('connection-status-card')).toBeTruthy();
+    expect(screen.queryByTestId('location-notice')).toBeNull();
+  });
+
+  it('avisa y permite reintentar cuando se deniega la ubicación', async () => {
+    await renderDashboard(new MockCoverageRepository({ latencyMs: 0 }), deniedLocation);
+
+    expect(await screen.findByTestId('location-notice')).toBeTruthy();
+    expect(screen.getByTestId('location-retry-button')).toBeTruthy();
+    // El dashboard sigue siendo utilizable con el origen por defecto.
+    expect(screen.getByTestId('connection-status-card')).toBeTruthy();
   });
 
   it('muestra la sugerencia tras buscar la mejor señal', async () => {

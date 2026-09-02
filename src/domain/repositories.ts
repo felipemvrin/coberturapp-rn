@@ -23,17 +23,26 @@ export interface CoverageRepository {
 }
 
 export interface NearbyAntennasQuery {
-  /** Ubicación del usuario. TODO: proveerla desde expo-location. */
+  /** Ubicación del usuario. Si falta, se usa el origen por defecto. */
   readonly origin?: GeoPoint;
   readonly radiusMeters?: number;
   readonly limit?: number;
 }
 
-/**
- * Fuente de ubicación desacoplada del repositorio.
- * TODO: implementar `ExpoLocationDataSource` con expo-location.
- */
+export type LocationPermissionStatus = 'granted' | 'denied' | 'undetermined';
+
+/** Error de ubicación con causa distinguible, para que la UI reaccione distinto. */
+export class LocationError extends Error {
+  constructor(readonly reason: 'permission-denied' | 'unavailable') {
+    super(reason);
+    this.name = 'LocationError';
+  }
+}
+
+/** Fuente de ubicación desacoplada del repositorio. */
 export interface LocationProvider {
+  requestPermission(): Promise<LocationPermissionStatus>;
+  /** Lanza `LocationError` si no hay permiso o el GPS no responde. */
   getCurrentPosition(): Promise<GeoPoint>;
 }
 
